@@ -22,6 +22,8 @@ import webbrowser
 from bs4 import BeautifulSoup
 import time
 import utils
+import socket
+import sqlite3
 
 
 class Example(QtGui.QMainWindow):
@@ -32,17 +34,53 @@ class Example(QtGui.QMainWindow):
     def initUI(self):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
-        # 初始化httpHelper
+        # 初始化
         self.http = HttpHelper.HttpHelper()
         self.constants = Constants()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # 得到操作者
         self.supporters = utils.get_supporters()
+        # 注入操作者
+        for item in self.supporters:
+            self.ui.box_supporters.addItem(item.name)
+        # 初始化数据库
+        utils.init_database()
         # 得到Cookies
         utils.get_cookies(self.http)
-        self.showIt(utils.get_insuranceitems_from_html(utils.do_search(self.http)))
+        # 绑定信号槽
+        self.ui.btn_refresh.clicked.connect(self.refresh_data)
+        self.ui.btn_distribute.clicked.connect(self.distribute_supporter)
+
+    def distribute_supporter(self):
+        if not self.insurances:
+            print u'请先刷新列表'
+        index = self.ui.box_supporters.currentIndex()
+        supporter = self.supporters[index]
+        row = self.ui.table_insurances.currentRow()
+        insurance_item = self.insurances[row]
+        try:
+            self.socket.connect((supporter.ip, 8001))
+        except Exception, e:
+            print u'操作者未上线'
+        else:
+            self.socket.send(utils.get_json_from_insurance(insurance_item))
+            # 把当前row的操作者改掉
+            self.ui.table_insurances.setItem(row, 11, QTableWidgetItem(supporter.name))
+            insurance_item.supporter = supporter.name
+            utils
+        finally:
+            pass
+
+    def merge_net_and_local(self):
+        pass
+
+    def refresh_data(self):
+        self.insurances = utils.get_insuranceitems_from_html(utils.do_search(self.http))
+        # self.merge_net_and_local(insurances)
+        self.showIt(self.insurances)
 
     def showIt(self, insurances):
-        labels = [u'序号', u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日起', u'状态', u'分配人']
+        labels = [u'序号', u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日起', u'状态', u'操作人']
         # self.ui.table_insurances.setColumnWidth(2, 200)
         self.ui.table_insurances.setColumnCount(len(labels))
         self.ui.table_insurances.setRowCount(len(insurances))
@@ -57,12 +95,8 @@ class Example(QtGui.QMainWindow):
             self.ui.table_insurances.setItem(row, 6, QTableWidgetItem(insurances[row].accident_type))
             self.ui.table_insurances.setItem(row, 7, QTableWidgetItem(insurances[row].claim_amount))
             self.ui.table_insurances.setItem(row, 8, QTableWidgetItem(insurances[row].express_num))
-            self.ui.table_insurances.setItem(row, 9, QTableWidgetItem(insurances[row].exxpress_date))
+            self.ui.table_insurances.setItem(row, 9, QTableWidgetItem(insurances[row].express_date))
             self.ui.table_insurances.setItem(row, 10, QTableWidgetItem(insurances[row].status))
-            charge_person_chooser = QComboBox()
-            for item in self.supporters:
-                charge_person_chooser.addItem(item.name)
-            self.ui.table_insurances.setCellWidget (row, 11, charge_person_chooser)
         # self.ui.table_insurances.resizeColumnsToContents()
 
 

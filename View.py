@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'View.ui'
 #
-# Created: Fri Apr 17 15:36:22 2015
+# Created: Mon Apr 20 09:14:53 2015
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -36,18 +36,24 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.date_end, 0, 1, 1, 1)
         self.btn_refresh = QtGui.QPushButton(self.centralwidget)
         self.btn_refresh.setObjectName(_fromUtf8("btn_refresh"))
-        self.gridLayout.addWidget(self.btn_refresh, 0, 3, 1, 1)
+        self.gridLayout.addWidget(self.btn_refresh, 0, 5, 1, 1)
         self.table_insurances = QtGui.QTableWidget(self.centralwidget)
         self.table_insurances.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.table_insurances.setObjectName(_fromUtf8("table_insurances"))
         self.table_insurances.setColumnCount(0)
         self.table_insurances.setRowCount(0)
-        self.gridLayout.addWidget(self.table_insurances, 1, 0, 1, 4)
+        self.gridLayout.addWidget(self.table_insurances, 1, 0, 1, 6)
         self.date_start = QtGui.QDateEdit(self.centralwidget)
         self.date_start.setObjectName(_fromUtf8("date_start"))
         self.gridLayout.addWidget(self.date_start, 0, 0, 1, 1)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem, 0, 2, 1, 1)
+        self.btn_distribute = QtGui.QPushButton(self.centralwidget)
+        self.btn_distribute.setObjectName(_fromUtf8("btn_distribute"))
+        self.gridLayout.addWidget(self.btn_distribute, 0, 4, 1, 1)
+        self.box_supporters = QtGui.QComboBox(self.centralwidget)
+        self.box_supporters.setObjectName(_fromUtf8("box_supporters"))
+        self.gridLayout.addWidget(self.box_supporters, 0, 3, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 830, 23))
@@ -63,4 +69,5 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
         self.btn_refresh.setText(_translate("MainWindow", "刷新", None))
+        self.btn_distribute.setText(_translate("MainWindow", "分配", None))
 

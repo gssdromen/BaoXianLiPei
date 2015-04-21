@@ -4,8 +4,40 @@ from InsuranceItem import InsuranceItem
 from SupportPeople import SupportPeople
 from bs4 import BeautifulSoup
 import codecs
+import json
+import sqlite3
 
 constants = Constants()
+
+def init_database():
+    # 读取数据库
+    database = sqlite3.connect("date.db")
+    database.execute("CREATE TABLE IF NOT EXISTS Supporters(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT UNIQUE, expressDate TEXT, status TEXT, supporter TEXT)")
+    database.commit()
+
+def save_insurance_to_database(item):
+    s = "INSERT INTO Supporters VALUES ('%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s' % (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter)) "
+
+def get_json_from_insurance(item):
+    dic = {}
+    dic['index'] = item.index
+    dic['apply_num'] = item.apply_num
+    dic['rtnum'] = item.rtnum
+    dic['applyer'] = item.applyer
+    dic['insurance_date'] = item.insurance_date
+    dic['insurance_id'] = item.insurance_id
+    dic['accident_type'] = item.accident_type
+    dic['claim_amount'] = item.claim_amount
+    dic['express_num'] = item.express_num
+    dic['express_date'] = item.express_date
+    dic['status'] = item.status
+    return get_json_from_dict(dic)
+
+def get_json_from_dict(dic):
+    return json.dumps(dic, ensure_ascii=False)
+
+def get_dict_from_json(s):
+    return json.loads(s)
 
 def get_supporters():
     result = []
@@ -32,11 +64,14 @@ def get_insuranceitems_from_html(html):
         accident_type = tds[8].text.strip()
         claim_amount = tds[9].text.strip()
         express_num = tds[10].text.strip()
-        exxpress_date = tds[11].text.strip()
+        express_date = tds[11].text.strip()
         status  = tds[12].text.strip()
-        insurance_item = InsuranceItem(index, apply_num, rtnum, applyer, insurance_date, insurance_id, accident_type, claim_amount, express_num, exxpress_date, status)
+        insurance_item = InsuranceItem(index, apply_num, rtnum, applyer, insurance_date, insurance_id, accident_type, claim_amount, express_num, express_date, status)
         result.append(insurance_item)
     return result
+
+def get_local_insuranceitems():
+    pass
 
 def do_search(httpHelper):
     dic = {}
