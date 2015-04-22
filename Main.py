@@ -61,13 +61,15 @@ class Example(QtGui.QMainWindow):
         try:
             self.socket.connect((supporter.ip, 8001))
         except Exception, e:
-            print u'操作者未上线'
+            # print u'操作者未上线'.encode('gbk')
+            pass
         else:
             self.socket.send(utils.get_json_from_insurance(insurance_item))
             # 把当前row的操作者改掉
             self.ui.table_insurances.setItem(row, 11, QTableWidgetItem(supporter.name))
             insurance_item.supporter = supporter.name
-            utils
+            # 分配记录存入数据库
+            utils.save_insurance_to_database(insurance_item)
         finally:
             pass
 
