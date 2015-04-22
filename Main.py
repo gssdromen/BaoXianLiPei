@@ -77,7 +77,7 @@ class Example(QtGui.QMainWindow):
         pass
 
     def refresh_data(self):
-        self.insurances = utils.get_insuranceitems_from_html(utils.do_search(self.http))
+        self.insurances = utils.get_insuranceitems_from_html(self.http)
         # self.merge_net_and_local(insurances)
         self.showIt(self.insurances)
 
