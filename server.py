@@ -8,6 +8,7 @@ while True:
     try:
         connection.settimeout(5)
         buf = connection.recv(1024)
+        print buf
         if buf == '1':
             connection.send('welcome to server!')
         else:

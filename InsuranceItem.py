@@ -2,7 +2,7 @@
 
 class InsuranceItem():
     """docstring for InsuranceItem"""
-    def __init__(self, index, apply_num, rtnum, applyer, insurance_date, insurance_id, accident_type, claim_amount, express_num, express_date, status):
+    def __init__(self, index, apply_num, rtnum, applyer, insurance_date, insurance_id, accident_type, claim_amount, express_num, express_date, status, supporter=''):
         # super(ResultItem, self).__init__()
         self.index = index
         self.apply_num = apply_num
@@ -15,7 +15,7 @@ class InsuranceItem():
         self.express_num = express_num
         self.express_date = express_date
         self.status = status
-        self.supporter = ''
+        self.supporter = supporter
 
     def __str__(self):
         return '%s:%s' % (self.apply_num.encode('gbk'), self.applyer.encode('gbk'))

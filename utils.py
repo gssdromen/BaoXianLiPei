@@ -6,22 +6,59 @@ from bs4 import BeautifulSoup
 import codecs
 import json
 import sqlite3
+import datetime
+import xlwt
+import os
+import _winreg
 
 constants = Constants()
 database = sqlite3.connect("date.db")
 
+def get_desktop():
+    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r'Volatile Environment')
+    return os.path.join(_winreg.QueryValueEx(key, "USERPROFILE")[0], 'Desktop')
+
 def init_database():
-    # 读取数据库
-    database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT UNIQUE, expressDate TEXT, status TEXT, supporter TEXT)")
+    # 初始化数据库
+    database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE)")
     database.commit()
 
 def get_insurances_from_database():
-    database.execute('SELECT * FROM Insurances')
-    database.commit()
+    result = []
+    for row in database.execute('SELECT * FROM Insurances'):
+        result.append(InsuranceItem(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11]))
+    return result
 
 def save_insurance_to_database(item):
-    database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter))
+    database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today()))
     database.commit()
+
+def export_to_excel(insurances, path):
+    workbook = xlwt.Workbook(encoding = 'UTF-8')
+    sheet = workbook.add_sheet(u'分配情况')
+    labels = [u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日起', u'状态', u'操作人']
+    for i in xrange(len(labels)):
+        sheet.write(0, i, labels[i])
+    line = 1
+    for item in insurances:
+        sheet.write(line, 0, item.apply_num)
+        sheet.write(line, 1, item.rtnum)
+        sheet.write(line, 2, item.applyer)
+        sheet.write(line, 3, item.insurance_date)
+        sheet.write(line, 4, item.insurance_id)
+        sheet.write(line, 5, item.accident_type)
+        sheet.write(line, 6, item.claim_amount)
+        sheet.write(line, 7, item.express_num)
+        sheet.write(line, 8, item.express_date)
+        sheet.write(line, 9, item.status)
+        sheet.write(line, 10, item.supporter)
+        line += 1
+    workbook.save(path)
+
+def get_insurance_from_json(s):
+    dic = get_dict_from_json(s)
+    insurance = InsuranceItem(dic['index'], dic['apply_num'], dic['rtnum'], dic['applyer'], dic['insurance_date'], dic['insurance_id'], dic['accident_type'], dic['claim_amount'], dic['express_num'], dic['express_date'], dic['status'])
+    return insurance
 
 def get_json_from_insurance(item):
     dic = {}
@@ -48,15 +85,15 @@ def get_supporters():
     result = []
     with codecs.open('support.ini', 'r', encoding='UTF-8') as f:
         for line in f:
-            temp = line.split('|')
+            temp = line.strip().split('|')
             people = SupportPeople(temp[0], temp[1])
             result.append(people)
     return result
 
-def get_insuranceitems_from_html(httpHelper):
+def get_insuranceitems_from_html(httpHelper, sdate, edate):
     result = []
     page = 1
-    html = do_search(httpHelper, page)
+    html = do_search(httpHelper, page, sdate, edate)
     while not html.find(class_ = 'empty'):
         insuContactList = html.find(id='insuContactList')
         tbody = insuContactList.find('tbody')
@@ -76,10 +113,12 @@ def get_insuranceitems_from_html(httpHelper):
             status  = unicode(tds[12].text.strip())
             insurance_item = InsuranceItem(index, apply_num, rtnum, applyer, insurance_date, insurance_id, accident_type, claim_amount, express_num, express_date, status)
             result.append(insurance_item)
+        print 'page:%d' % (page)
+        page += 1
+        html = do_search(httpHelper, page, sdate, edate)
     return result
 
-
-def do_search(httpHelper, page):
+def do_search(httpHelper, page, sdate, edate):
     # dic = {}
     # dic['applyId'] = ''
     # dic['contractID'] = ''
@@ -103,9 +142,8 @@ def do_search(httpHelper, page):
     # # 是否邮寄
     # dic['isMailing'] = ''
     # return BeautifulSoup(httpHelper.sendRequest('post', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html", dic))
-    get_pram = '?applyId=&applyer=&appStartDate=%s&imsauthFuncCode=LAB_ISCAQC&approvedEndDate=&afwBpId=&d-7248057-p=%d&spouseName=&afwBpName=&lisencePlate=&approvedStartDate=&vinCode=&isMailing=&certNo=&appEndDate=&contractID=&insurClaimStat=Submit' % ('20150422', page)
+    get_pram = '?applyId=&applyer=&appStartDate=%s&imsauthFuncCode=LAB_ISCAQC&approvedEndDate=&afwBpId=&d-7248057-p=%d&spouseName=&afwBpName=&lisencePlate=&approvedStartDate=&vinCode=&isMailing=&certNo=&appEndDate=%s&contractID=&insurClaimStat=' % (sdate, page, edate)
     return BeautifulSoup(httpHelper.sendRequest('get', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html" + get_pram))
-
 
 def get_cookies(httpHelper):
     fileHandle = open('acc.txt', 'r')
