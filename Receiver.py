@@ -56,7 +56,7 @@ class Refresher(QThread):
             l = QStringList()
             with codecs.open('log.log', 'r', encoding='UTF-8') as f:
                 for line in f:
-                    l.append(QString.fromUtf8(line.strip()))
+                    l.insert(0, QString.fromUtf8(line.strip()))
             self.emit(SIGNAL("update_ui(QStringList)"), l)
             time.sleep(3)
 
@@ -69,11 +69,19 @@ class Example(QtGui.QMainWindow):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(u'保险理赔处理')
+        self.ui.act_cleardb.triggered.connect(self.clear_db)
+        self.ui.act_clearlog.triggered.connect(self.clear_log)
         self.receiver = Receiver()
         self.refresher = Refresher()
         self.connect(self.refresher, SIGNAL("update_ui(QStringList)"), self.showIt)
         self.receiver.start()
         self.refresher.start()
+
+    def clear_db(self):
+        utils.clear_db()
+
+    def clear_log(self):
+        utils.clear_log()
 
     def showIt(self, l):
         insurances = []

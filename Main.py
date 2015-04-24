@@ -51,6 +51,14 @@ class Example(QtGui.QMainWindow):
         self.ui.btn_refresh.clicked.connect(self.refresh_data)
         self.ui.btn_distribute.clicked.connect(self.distribute_supporter)
         self.ui.btn_export.clicked.connect(self.export_log)
+        self.ui.act_cleardb.triggered.connect(self.clear_db)
+        self.ui.act_clearlog.triggered.connect(self.clear_log)
+
+    def clear_db(self):
+        utils.clear_db()
+
+    def clear_log(self):
+        utils.clear_log()
 
     def export_log(self):
         sdate = self.ui.date_start.date().toString('yyyyMMdd')
@@ -66,6 +74,7 @@ class Example(QtGui.QMainWindow):
         self.ui.label_status.setText(s)
 
     def distribute_supporter(self):
+        self.show_status(u'')
         if not self.insurances:
             print u'请先刷新列表'.encode('UTF-8')
             self.show_status(u'请先刷新列表')
@@ -110,7 +119,17 @@ class Example(QtGui.QMainWindow):
     def refresh_data(self):
         sdate = self.ui.date_start.date().toString('yyyyMMdd')
         edate = self.ui.date_end.date().toString('yyyyMMdd')
-        net = utils.get_insuranceitems_from_html(sdate, edate)
+        if self.ui.box_status.currentIndex() == 0:
+            status = ''
+        elif self.ui.box_status.currentIndex() == 1:
+            status = 'Submit'
+        if self.ui.box_is_express.currentIndex() == 0:
+            is_express = ''
+        elif self.ui.box_is_express.currentIndex() == 1:
+            is_express = '0'
+        elif self.ui.box_is_express.currentIndex() == 2:
+            is_express = '1'
+        net = utils.get_insuranceitems_from_html(sdate, edate, status, is_express)
         local = utils.get_insurances_from_database()
         self.insurances = self.merge_net_and_local(net, local)
         self.showIt(self.insurances)

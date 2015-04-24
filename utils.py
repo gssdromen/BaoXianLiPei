@@ -17,6 +17,14 @@ constants = Constants()
 http = HttpHelper()
 database = sqlite3.connect("date.db")
 
+def clear_db():
+    database.execute("DELETE FROM Insurances")
+    database.commit()
+
+def clear_log():
+    with open('log.log', 'w') as f:
+        pass
+
 def get_desktop():
     key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r'Volatile Environment')
     return os.path.join(_winreg.QueryValueEx(key, "USERPROFILE")[0], 'Desktop')
@@ -96,10 +104,10 @@ def get_supporters():
             result.append(people)
     return result
 
-def get_insuranceitems_from_html(sdate, edate):
+def get_insuranceitems_from_html(sdate, edate, status_, is_express):
     result = []
     page = 1
-    html = do_search(page, sdate, edate)
+    html = do_search(page, sdate, edate, status_, is_express)
     while not html.find(class_ = 'empty'):
         insuContactList = html.find(id='insuContactList')
         tbody = insuContactList.find('tbody')
@@ -121,10 +129,10 @@ def get_insuranceitems_from_html(sdate, edate):
             result.append(insurance_item)
         print 'page:%d' % (page)
         page += 1
-        html = do_search(page, sdate, edate)
+        html = do_search(page, sdate, edate, status_, is_express)
     return result
 
-def do_search(page, sdate, edate):
+def do_search(page, sdate, edate, status, is_express):
     # dic = {}
     # dic['applyId'] = ''
     # dic['contractID'] = ''
@@ -148,7 +156,7 @@ def do_search(page, sdate, edate):
     # # 是否邮寄
     # dic['isMailing'] = ''
     # return BeautifulSoup(httpHelper.sendRequest('post', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html", dic))
-    get_pram = '?applyId=&applyer=&appStartDate=%s&imsauthFuncCode=LAB_ISCAQC&approvedEndDate=&afwBpId=&d-7248057-p=%d&spouseName=&afwBpName=&lisencePlate=&approvedStartDate=&vinCode=&isMailing=&certNo=&appEndDate=%s&contractID=&insurClaimStat=' % (sdate, page, edate)
+    get_pram = '?applyId=&applyer=&appStartDate=%s&imsauthFuncCode=LAB_ISCAQC&approvedEndDate=&afwBpId=&d-7248057-p=%d&spouseName=&afwBpName=&lisencePlate=&approvedStartDate=&vinCode=&isMailing=%s&certNo=&appEndDate=%s&contractID=&insurClaimStat=%s' % (sdate, page, is_express, edate, status)
     return BeautifulSoup(http.sendRequest('get', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html" + get_pram))
 
 def get_cookies():
