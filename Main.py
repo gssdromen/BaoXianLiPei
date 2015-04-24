@@ -32,6 +32,7 @@ class Example(QtGui.QMainWindow):
     def initUI(self):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowTitle(u'保险理赔分发')
         # 得到今天日期
         self.today = QDate.currentDate ()
         self.ui.date_start.setDate(self.today)
@@ -75,6 +76,7 @@ class Example(QtGui.QMainWindow):
         insurance_item = self.insurances[row]
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            print supporter.ip.strip()
             self.socket.connect((supporter.ip.strip(), 8001))
         except Exception, e:
             print u'操作者未上线'.encode('UTF-8')
@@ -112,6 +114,7 @@ class Example(QtGui.QMainWindow):
         local = utils.get_insurances_from_database()
         self.insurances = self.merge_net_and_local(net, local)
         self.showIt(self.insurances)
+        self.show_status(u'刷新完毕')
 
     def showIt(self, insurances):
         labels = [u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日期', u'状态', u'操作人']

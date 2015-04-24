@@ -17,7 +17,7 @@ class Receiver(QThread):
         # global count, mutex
         threadname = threading.currentThread().getName()
 
-        HOST, PORT = "localhost", 8001
+        HOST, PORT = utils.get_local_ip(), 8001
 
         # Create the server, binding to localhost on port 9999
         server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
@@ -68,6 +68,7 @@ class Example(QtGui.QMainWindow):
     def initUI(self):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
+        self.setWindowTitle(u'保险理赔处理')
         self.receiver = Receiver()
         self.refresher = Refresher()
         self.connect(self.refresher, SIGNAL("update_ui(QStringList)"), self.showIt)

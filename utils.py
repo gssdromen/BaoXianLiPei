@@ -11,6 +11,7 @@ import datetime
 import xlwt
 import os
 import _winreg
+import socket
 
 constants = Constants()
 http = HttpHelper()
@@ -19,6 +20,9 @@ database = sqlite3.connect("date.db")
 def get_desktop():
     key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r'Volatile Environment')
     return os.path.join(_winreg.QueryValueEx(key, "USERPROFILE")[0], 'Desktop')
+
+def get_local_ip():
+    return socket.gethostbyname(socket.gethostname())#得到本地ip
 
 def init_database():
     # 初始化数据库
