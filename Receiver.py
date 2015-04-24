@@ -8,14 +8,11 @@ import View
 import SocketServer
 import threading
 import time
+import codecs
 import utils
 
 
 class Receiver(QThread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        # self._run_num = num
-
     def run(self):
         # global count, mutex
         threadname = threading.currentThread().getName()
@@ -40,15 +37,28 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
         # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        insurance = utils.get_insurance_from_json(self.data)
-        self.emit(SIGNAL("update_ui(InsuranceItem)"))
+        data = self.request.recv(1024).strip()
+        self.request.sendall('success')
+        with codecs.open('log.log', 'a') as f:
+            f.write(data + '\n')
+        # insurance = utils.get_insurance_from_json(self.data)
+        # self.emit(SIGNAL("update_ui(QString)"), data)
         # print "{} wrote:".format(self.client_address[0])
         # print self.data
         # print utils.get_insurance_from_json(self.data)
         # just send back the same data, but upper-cased
         # self.request.sendall(self.data.upper())
 
+
+class Refresher(QThread):
+    def run(self):
+        while True:
+            l = QStringList()
+            with codecs.open('log.log', 'r', encoding='UTF-8') as f:
+                for line in f:
+                    l.append(QString.fromUtf8(line.strip()))
+            self.emit(SIGNAL("update_ui(QStringList)"), l)
+            time.sleep(3)
 
 class Example(QtGui.QMainWindow):
     def __init__(self):
@@ -59,10 +69,16 @@ class Example(QtGui.QMainWindow):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
         self.receiver = Receiver()
-        self.connect(self.receiver, SIGNAL("update_ui(InsuranceItem)"), self.showIt)
-        self.connect(self., Qt)
+        self.refresher = Refresher()
+        self.connect(self.refresher, SIGNAL("update_ui(QStringList)"), self.showIt)
+        self.receiver.start()
+        self.refresher.start()
 
-    def showIt(self, insurances):
+    def showIt(self, l):
+        insurances = []
+        for string in l:
+            # print string.toLocal8Bit().__str__
+            insurances.append(utils.get_insurance_from_json(unicode(string)))
         # 从这里开始改
         labels = [u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日期', u'状态', u'操作人']
         # self.ui.table_insurances.setColumnWidth(2, 200)

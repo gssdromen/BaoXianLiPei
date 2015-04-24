@@ -4,7 +4,6 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui  import *
 from PyQt4.QtCore  import *
 import View
-from Constants import Constants
 from xlwt.Workbook import *
 import xlrd
 import os
@@ -17,7 +16,6 @@ import urllib
 import urllib2
 import cookielib
 import HTMLParser
-import HttpHelper
 import webbrowser
 from bs4 import BeautifulSoup
 import time
@@ -34,9 +32,6 @@ class Example(QtGui.QMainWindow):
     def initUI(self):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
-        # 初始化
-        self.http = HttpHelper.HttpHelper()
-        self.constants = Constants()
         # 得到今天日期
         self.today = QDate.currentDate ()
         self.ui.date_start.setDate(self.today)
@@ -50,7 +45,7 @@ class Example(QtGui.QMainWindow):
         # 初始化数据库
         utils.init_database()
         # 得到Cookies
-        utils.get_cookies(self.http)
+        utils.get_cookies()
         # 绑定信号槽
         self.ui.btn_refresh.clicked.connect(self.refresh_data)
         self.ui.btn_distribute.clicked.connect(self.distribute_supporter)
@@ -86,7 +81,10 @@ class Example(QtGui.QMainWindow):
             self.show_status(u'操作者未上线')
             print e
         else:
-            if self.socket.send(utils.get_json_from_insurance(insurance_item).encode('UTF-8')):
+            self.socket.send(utils.get_json_from_insurance(insurance_item).encode('UTF-8'))
+            re = self.socket.recv(1024)
+            print re
+            if re == 'success':
                 # 把当前row的操作者改掉
                 self.ui.table_insurances.setItem(row, 10, QTableWidgetItem(supporter.name))
                 insurance_item.supporter = supporter.name
@@ -110,7 +108,7 @@ class Example(QtGui.QMainWindow):
     def refresh_data(self):
         sdate = self.ui.date_start.date().toString('yyyyMMdd')
         edate = self.ui.date_end.date().toString('yyyyMMdd')
-        net = utils.get_insuranceitems_from_html(self.http, sdate, edate)
+        net = utils.get_insuranceitems_from_html(sdate, edate)
         local = utils.get_insurances_from_database()
         self.insurances = self.merge_net_and_local(net, local)
         self.showIt(self.insurances)

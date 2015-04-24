@@ -1,5 +1,6 @@
 # coding:UTF-8
 from Constants import Constants
+from HttpHelper import HttpHelper
 from InsuranceItem import InsuranceItem
 from SupportPeople import SupportPeople
 from bs4 import BeautifulSoup
@@ -12,6 +13,7 @@ import os
 import _winreg
 
 constants = Constants()
+http = HttpHelper()
 database = sqlite3.connect("date.db")
 
 def get_desktop():
@@ -90,10 +92,10 @@ def get_supporters():
             result.append(people)
     return result
 
-def get_insuranceitems_from_html(httpHelper, sdate, edate):
+def get_insuranceitems_from_html(sdate, edate):
     result = []
     page = 1
-    html = do_search(httpHelper, page, sdate, edate)
+    html = do_search(page, sdate, edate)
     while not html.find(class_ = 'empty'):
         insuContactList = html.find(id='insuContactList')
         tbody = insuContactList.find('tbody')
@@ -115,10 +117,10 @@ def get_insuranceitems_from_html(httpHelper, sdate, edate):
             result.append(insurance_item)
         print 'page:%d' % (page)
         page += 1
-        html = do_search(httpHelper, page, sdate, edate)
+        html = do_search(page, sdate, edate)
     return result
 
-def do_search(httpHelper, page, sdate, edate):
+def do_search(page, sdate, edate):
     # dic = {}
     # dic['applyId'] = ''
     # dic['contractID'] = ''
@@ -143,14 +145,14 @@ def do_search(httpHelper, page, sdate, edate):
     # dic['isMailing'] = ''
     # return BeautifulSoup(httpHelper.sendRequest('post', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html", dic))
     get_pram = '?applyId=&applyer=&appStartDate=%s&imsauthFuncCode=LAB_ISCAQC&approvedEndDate=&afwBpId=&d-7248057-p=%d&spouseName=&afwBpName=&lisencePlate=&approvedStartDate=&vinCode=&isMailing=&certNo=&appEndDate=%s&contractID=&insurClaimStat=' % (sdate, page, edate)
-    return BeautifulSoup(httpHelper.sendRequest('get', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html" + get_pram))
+    return BeautifulSoup(http.sendRequest('get', constants.baseurl+"/vfs2/innerpage/loanafterportlet/insurClaimApprovedQueryList.html" + get_pram))
 
-def get_cookies(httpHelper):
+def get_cookies():
     fileHandle = open('acc.txt', 'r')
     line = fileHandle.readline()
     aList = line.split('|')
     dic = {}
     dic["loginName"] = aList[0]
     dic["password"] = aList[1]
-    html = BeautifulSoup(httpHelper.sendRequest('post', constants.baseurl+"/vfs2/login.html", dic))
+    html = BeautifulSoup(http.sendRequest('post', constants.baseurl+"/vfs2/login.html", dic))
     print html.find('title').text.encode('UTF-8')
