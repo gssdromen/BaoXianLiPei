@@ -36,16 +36,10 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
         # self.request is the TCP socket connected to the client
         data = self.request.recv(1024).strip()
         item = utils.get_insurance_from_json(data)
-        self.database = sqlite3.connect("date2.db", check_same_thread = False)
-        self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, False))
-        self.database.commit()
+        utils.save_insurance_to_database(item)
         self.request.sendall('success')
 
 class Refresher(QThread):
-    def __init__(self):
-        super(Refresher, self).__init__()
-        self.database = sqlite3.connect("date2.db", check_same_thread = False)
-
     def run(self):
         while True:
             result = []
@@ -67,13 +61,10 @@ class Example(QtGui.QMainWindow):
         self.ui.act_clearlog.triggered.connect(self.clear_log)
         self.ui.btn_finish.clicked.connect(self.mark_done)
         self.ui.table_insurances.cellClicked.connect(self.copy)
-        # 初始化数据库
-        self.database = sqlite3.connect("date2.db")
-        self.database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, isDone BOOLEAN)")
-        self.database.commit()
+        utils.init_database("date2.db")
         self.receiver = Receiver()
         self.refresher = Refresher()
-        self.connect(self.refresher, QtCore.SIGNAL("update_ui(PyQt_PyObject)"), self.showIt)
+        self.connect(self.refresher, QtCore.SIGNAL("update_ui(PyQt_PyObject)"), self.updateIt)
         self.receiver.start()
         self.refresher.start()
 
@@ -84,10 +75,11 @@ class Example(QtGui.QMainWindow):
 
     def mark_done(self):
         row = self.ui.table_insurances.currentRow()
-        insurance_id = str(self.ui.table_insurances.item(row, 4).text())
-        self.database.execute("UPDATE Insurances SET isDone = 1 WHERE insuranceId = ?", (insurance_id,))
-        self.database.commit()
-        self.ui.table_insurances.removeRow (row)
+        item = self.insurances.pop(row)
+        # apply_num = str(self.ui.table_insurances.item(row, 4).text())
+        # insurance_id = str(self.ui.table_insurances.item(row, 0).text())
+        utils.mark_done(item)
+        self.ui.table_insurances.removeRow(row)
 
     def clear_db(self):
         utils.clear_db()
@@ -97,7 +89,12 @@ class Example(QtGui.QMainWindow):
         self.database.commit()
         self.ui.table_insurances.clear()
 
-    def showIt(self, insurances):
+    def updateIt(self, insurances):
+        self.insurances = insurances
+        self.showIt()
+
+    def showIt(self):
+        insurances = self.insurances
         # 从这里开始改
         labels = [u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日期', u'状态', u'操作人']
         # self.ui.table_insurances.setColumnWidth(2, 200)

@@ -15,7 +15,6 @@ import socket
 
 constants = Constants()
 http = HttpHelper()
-database = sqlite3.connect("date.db")
 
 def clear_db():
     database.execute("DELETE FROM Insurances")
@@ -32,9 +31,10 @@ def get_desktop():
 def get_local_ip():
     return socket.gethostbyname(socket.gethostname())#得到本地ip
 
-def init_database():
+def init_database(database_name):
+    database = sqlite3.connect(database_name, check_same_thread = False)
     # 初始化数据库
-    database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE)")
+    database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE, isDone BOOLEAN)")
     database.commit()
 
 def get_insurances_from_database():
@@ -44,7 +44,16 @@ def get_insurances_from_database():
     return result
 
 def save_insurance_to_database(item):
-    database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today()))
+    database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?,False)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today(),False))
+    database.commit()
+
+def update_insurance_in_database(item):
+    database.execute("UPDATE Insurances SET status=? WHERE insuranceId=? and applyNum=?",(item.status, item.insurance_id, item.apply_num))
+    # database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today()))
+    database.commit()
+
+def mark_done(item):
+    database.execute("UPDATE Insurances SET isDone = ? WHERE insuranceId = ? and applyNum = ?", (True, item.insurance_id, item.apply_num))
     database.commit()
 
 def export_to_excel(insurances, path):
