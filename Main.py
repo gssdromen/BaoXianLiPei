@@ -106,12 +106,17 @@ class Example(QtGui.QMainWindow):
 
     def merge_net_and_local(self, net, local):
         result = []
+        # for item in net:
+        #     print item.apply_num
         for net_item in net:
             flag = False
             for local_item in local:
                 if net_item.insurance_id == local_item.insurance_id:
                     result.append(local_item)
                     flag = True
+                if local_item.apply_num == '491451':
+                    print 'net:'+net_item.insurance_id
+                    print 'local:'+local_item.insurance_id
             if not flag:
                 result.append(net_item)
         return result

@@ -4,19 +4,17 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtGui  import *
 from PyQt4.QtCore  import *
 from InsuranceItem import InsuranceItem
-import View
+import View2
 import SocketServer
 import threading
 import time
 import codecs
 import utils
+import sqlite3
 
 
 class Receiver(QThread):
     def run(self):
-        # global count, mutex
-        threadname = threading.currentThread().getName()
-
         HOST, PORT = utils.get_local_ip(), 8001
 
         # Create the server, binding to localhost on port 9999
@@ -34,30 +32,26 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     override the handle() method to implement communication to the
     client.
     """
-
     def handle(self):
         # self.request is the TCP socket connected to the client
         data = self.request.recv(1024).strip()
+        item = utils.get_insurance_from_json(data)
+        self.database = sqlite3.connect("date2.db", check_same_thread = False)
+        self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, False))
+        self.database.commit()
         self.request.sendall('success')
-        with codecs.open('log.log', 'a') as f:
-            f.write(data + '\n')
-        # insurance = utils.get_insurance_from_json(self.data)
-        # self.emit(SIGNAL("update_ui(QString)"), data)
-        # print "{} wrote:".format(self.client_address[0])
-        # print self.data
-        # print utils.get_insurance_from_json(self.data)
-        # just send back the same data, but upper-cased
-        # self.request.sendall(self.data.upper())
-
 
 class Refresher(QThread):
+    def __init__(self):
+        super(Refresher, self).__init__()
+        self.database = sqlite3.connect("date2.db", check_same_thread = False)
+
     def run(self):
         while True:
-            l = QStringList()
-            with codecs.open('log.log', 'r', encoding='UTF-8') as f:
-                for line in f:
-                    l.insert(0, QString.fromUtf8(line.strip()))
-            self.emit(SIGNAL("update_ui(QStringList)"), l)
+            result = []
+            for row in self.database.execute('SELECT * FROM Insurances WHERE isDone = 0'):
+                result.append(InsuranceItem(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10]))
+            self.emit(SIGNAL("update_ui(PyQt_PyObject)"), result)
             time.sleep(3)
 
 class Example(QtGui.QMainWindow):
@@ -66,28 +60,44 @@ class Example(QtGui.QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.ui = View.Ui_MainWindow()
+        self.ui = View2.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(u'保险理赔处理')
         self.ui.act_cleardb.triggered.connect(self.clear_db)
         self.ui.act_clearlog.triggered.connect(self.clear_log)
+        self.ui.btn_finish.clicked.connect(self.mark_done)
+        self.ui.table_insurances.cellClicked.connect(self.copy)
+        # 初始化数据库
+        self.database = sqlite3.connect("date2.db")
+        self.database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, isDone BOOLEAN)")
+        self.database.commit()
         self.receiver = Receiver()
         self.refresher = Refresher()
-        self.connect(self.refresher, SIGNAL("update_ui(QStringList)"), self.showIt)
+        self.connect(self.refresher, QtCore.SIGNAL("update_ui(PyQt_PyObject)"), self.showIt)
         self.receiver.start()
         self.refresher.start()
+
+    def copy(self):
+        row = self.ui.table_insurances.currentRow()
+        apply_id = str(self.ui.table_insurances.item(row, 0).text())
+        QtGui.QApplication.clipboard().setText(apply_id)
+
+    def mark_done(self):
+        row = self.ui.table_insurances.currentRow()
+        insurance_id = str(self.ui.table_insurances.item(row, 4).text())
+        self.database.execute("UPDATE Insurances SET isDone = 1 WHERE insuranceId = ?", (insurance_id,))
+        self.database.commit()
+        self.ui.table_insurances.removeRow (row)
 
     def clear_db(self):
         utils.clear_db()
 
     def clear_log(self):
-        utils.clear_log()
+        self.database.execute("UPDATE Insurances SET isDone = 1")
+        self.database.commit()
+        self.ui.table_insurances.clear()
 
-    def showIt(self, l):
-        insurances = []
-        for string in l:
-            # print string.toLocal8Bit().__str__
-            insurances.append(utils.get_insurance_from_json(unicode(string)))
+    def showIt(self, insurances):
         # 从这里开始改
         labels = [u'申请编号', u'合同号', u'申请人', u'出险日期', u'报案号', u'事故类型', u'理赔金额', u'快递单号', u'邮寄日期', u'状态', u'操作人']
         # self.ui.table_insurances.setColumnWidth(2, 200)
