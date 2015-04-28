@@ -42,10 +42,7 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
 class Refresher(QThread):
     def run(self):
         while True:
-            result = []
-            for row in self.database.execute('SELECT * FROM Insurances WHERE isDone = 0'):
-                result.append(InsuranceItem(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10]))
-            self.emit(SIGNAL("update_ui(PyQt_PyObject)"), result)
+            self.emit(SIGNAL("update_ui(PyQt_PyObject)"), utils.get_undone_insurances_from_database())
             time.sleep(3)
 
 class Example(QtGui.QMainWindow):
