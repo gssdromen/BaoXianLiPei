@@ -13,6 +13,15 @@ import os
 import _winreg
 import socket
 
+def singleton(cls, *args, **kw):
+    instances = {}
+    def _singleton():
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+    return _singleton
+
+@singleton
 class Utils(object):
     constants = Constants()
     http = HttpHelper()
@@ -35,29 +44,29 @@ class Utils(object):
     def get_local_ip(self):
         return socket.gethostbyname(socket.gethostname())#得到本地ip
 
-    def init_self.database(self, self.database_name):
-        self.database = sqlite3.connect(self.database_name, check_same_thread = False)
+    def init_database(self, database_name):
+        self.database = sqlite3.connect(database_name, check_same_thread = False)
         # 初始化数据库
         self.database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE, isDone BOOLEAN)")
         self.database.commit()
 
-    def get_insurances_from_self.database(self):
+    def get_insurances_from_database(self):
         result = []
         for row in self.database.execute('SELECT * FROM Insurances'):
             result.append(InsuranceItem(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11]))
         return result
 
-    def get_undone_insurances_from_self.database(self):
+    def get_undone_insurances_from_database(self):
         result = []
         for row in self.database.execute('SELECT * FROM Insurances WHERE isDone = 0'):
             result.append(InsuranceItem(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11]))
         return result
 
-    def save_insurance_to_self.database(self, item):
+    def save_insurance_to_database(self, item):
         self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?,False)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today(),False))
         self.database.commit()
 
-    def update_insurance_in_self.database(self, item):
+    def update_insurance_in_database(self, item):
         self.database.execute("UPDATE Insurances SET status=? WHERE insuranceId=? and applyNum=?",(item.status, item.insurance_id, item.apply_num))
         # self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today()))
         self.database.commit()
@@ -126,7 +135,7 @@ class Utils(object):
     def get_insuranceitems_from_html(self, sdate, edate, status_, is_express):
         result = []
         page = 1
-        html = do_search(page, sdate, edate, status_, is_express)
+        html = self.do_search(page, sdate, edate, status_, is_express)
         while not html.find(class_ = 'empty'):
             insuContactList = html.find(id='insuContactList')
             tbody = insuContactList.find('tbody')
@@ -148,7 +157,7 @@ class Utils(object):
                 result.append(insurance_item)
             print 'page:%d' % (page)
             page += 1
-            html = do_search(page, sdate, edate, status_, is_express)
+            html = self.do_search(page, sdate, edate, status_, is_express)
         return result
 
     def do_search(self, page, sdate, edate, status, is_express):

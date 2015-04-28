@@ -9,13 +9,13 @@ import SocketServer
 import threading
 import time
 import codecs
-import utils
+from utils import Utils
 import sqlite3
 
 
 class Receiver(QThread):
     def run(self):
-        HOST, PORT = utils.get_local_ip(), 8001
+        HOST, PORT = self.utils.get_local_ip(), 8001
 
         # Create the server, binding to localhost on port 9999
         server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
@@ -25,6 +25,7 @@ class Receiver(QThread):
         server.serve_forever()
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
+    utils = Utils()
     """
     The RequestHandler class for our server.
 
@@ -35,14 +36,15 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         # self.request is the TCP socket connected to the client
         data = self.request.recv(1024).strip()
-        item = utils.get_insurance_from_json(data)
-        utils.save_insurance_to_database(item)
+        item = self.utils.get_insurance_from_json(data)
+        self.utils.save_insurance_to_database(item)
         self.request.sendall('success')
 
 class Refresher(QThread):
+    utils = Utils()
     def run(self):
         while True:
-            self.emit(SIGNAL("update_ui(PyQt_PyObject)"), utils.get_undone_insurances_from_database())
+            self.emit(SIGNAL("update_ui(PyQt_PyObject)"), self.utils.get_undone_insurances_from_database())
             time.sleep(3)
 
 class Example(QtGui.QMainWindow):
@@ -54,11 +56,12 @@ class Example(QtGui.QMainWindow):
         self.ui = View2.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(u'保险理赔处理')
+        self.utils = Utils()
         self.ui.act_cleardb.triggered.connect(self.clear_db)
         self.ui.act_clearlog.triggered.connect(self.clear_log)
         self.ui.btn_finish.clicked.connect(self.mark_done)
         self.ui.table_insurances.cellClicked.connect(self.copy)
-        utils.init_database("date2.db")
+        self.utils.init_database("date2.db")
         self.receiver = Receiver()
         self.refresher = Refresher()
         self.connect(self.refresher, QtCore.SIGNAL("update_ui(PyQt_PyObject)"), self.updateIt)
@@ -75,11 +78,11 @@ class Example(QtGui.QMainWindow):
         item = self.insurances.pop(row)
         # apply_num = str(self.ui.table_insurances.item(row, 4).text())
         # insurance_id = str(self.ui.table_insurances.item(row, 0).text())
-        utils.mark_done(item)
+        self.utils.mark_done(item)
         self.ui.table_insurances.removeRow(row)
 
     def clear_db(self):
-        utils.clear_db()
+        self.utils.clear_db()
 
     def clear_log(self):
         self.database.execute("UPDATE Insurances SET isDone = 1")

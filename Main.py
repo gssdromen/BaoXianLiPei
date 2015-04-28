@@ -20,7 +20,6 @@ import webbrowser
 from bs4 import BeautifulSoup
 from utils import Utils
 import time
-import utils
 import socket
 import sqlite3
 
@@ -34,21 +33,22 @@ class Example(QtGui.QMainWindow):
         self.ui = View.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(u'保险理赔分发')
+        # 初始化工具类
+        self.utils = Utils()
         # 得到今天日期
         self.today = QDate.currentDate ()
         self.ui.date_start.setDate(self.today)
         self.ui.date_end.setDate(self.today)
         # 得到操作者
-        self.supporters = utils.get_supporters()
+        self.supporters = self.utils.get_supporters()
         # 注入操作者
         for item in self.supporters:
             self.ui.box_supporters.addItem(item.name)
         self.insurances = []
-        utils = Utils()
         # 初始化数据库
-        utils.init_database('date.db')
+        self.utils.init_database('date.db')
         # 得到Cookies
-        utils.get_cookies()
+        self.utils.get_cookies()
         # 绑定信号槽
         self.ui.btn_refresh.clicked.connect(self.refresh_data)
         self.ui.btn_distribute.clicked.connect(self.distribute_supporter)
@@ -57,16 +57,16 @@ class Example(QtGui.QMainWindow):
         self.ui.act_clearlog.triggered.connect(self.clear_log)
 
     def clear_db(self):
-        utils.clear_db()
+        self.utils.clear_db()
 
     def clear_log(self):
-        utils.clear_log()
+        self.utils.clear_log()
 
     def export_log(self):
         sdate = self.ui.date_start.date().toString('yyyyMMdd')
         edate = self.ui.date_end.date().toString('yyyyMMdd')
         if self.insurances:
-            utils.export_to_excel(self.insurances, os.path.join(utils.get_desktop(),'%s-%s.xls' % (sdate, edate)))
+            self.utils.export_to_excel(self.insurances, os.path.join(self.utils.get_desktop(),'%s-%s.xls' % (sdate, edate)))
             QtGui.QMessageBox.question(self, 'Message', u"导出成功", QtGui.QMessageBox.Yes)
         else:
             print u'请先刷新列表'.encode('UTF-8')
@@ -94,7 +94,7 @@ class Example(QtGui.QMainWindow):
             self.show_status(u'操作者未上线')
             print e
         else:
-            self.socket.send(utils.get_json_from_insurance(insurance_item).encode('UTF-8'))
+            self.socket.send(self.utils.get_json_from_insurance(insurance_item).encode('UTF-8'))
             re = self.socket.recv(1024)
             print re
             if re == 'success':
@@ -102,7 +102,7 @@ class Example(QtGui.QMainWindow):
                 self.ui.table_insurances.setItem(row, 10, QTableWidgetItem(supporter.name))
                 insurance_item.supporter = supporter.name
                 # 分配记录存入数据库
-                utils.save_insurance_to_database(insurance_item)
+                self.utils.save_insurance_to_database(insurance_item)
         finally:
             self.socket.close()
 
@@ -111,7 +111,7 @@ class Example(QtGui.QMainWindow):
         for net_item in net:
             for local_item in local:
                 if net_item.insurance_id == local_item.insurance_id and net_item.apply_num == local_item.apply_num:
-                    utils.update_insurance_in_database(net_item)
+                    self.utils.update_insurance_in_database(net_item)
                     net_item.supporter = local_item.supporter
             result.append(net_item)
         return result
@@ -129,8 +129,8 @@ class Example(QtGui.QMainWindow):
             is_express = '0'
         elif self.ui.box_is_express.currentIndex() == 2:
             is_express = '1'
-        net = utils.get_insuranceitems_from_html(sdate, edate, status, is_express)
-        local = utils.get_insurances_from_database()
+        net = self.utils.get_insuranceitems_from_html(sdate, edate, status, is_express)
+        local = self.utils.get_insurances_from_database()
         self.insurances = self.merge_net_and_local(net, local)
         self.showIt(self.insurances)
         self.show_status(u'刷新完毕')
