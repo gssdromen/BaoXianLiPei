@@ -18,6 +18,7 @@ import cookielib
 import HTMLParser
 import webbrowser
 from bs4 import BeautifulSoup
+from utils import Utils
 import time
 import utils
 import socket
@@ -43,6 +44,7 @@ class Example(QtGui.QMainWindow):
         for item in self.supporters:
             self.ui.box_supporters.addItem(item.name)
         self.insurances = []
+        utils = Utils()
         # 初始化数据库
         utils.init_database('date.db')
         # 得到Cookies
