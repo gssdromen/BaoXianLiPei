@@ -25,7 +25,6 @@ class Receiver(QThread):
         server.serve_forever()
 
 class MyTCPHandler(SocketServer.BaseRequestHandler):
-    utils = Utils()
     """
     The RequestHandler class for our server.
 
@@ -35,13 +34,16 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
     """
     def handle(self):
         # self.request is the TCP socket connected to the client
+        utils = Utils()
         data = self.request.recv(1024).strip()
         item = self.utils.get_insurance_from_json(data)
-        self.utils.save_insurance_to_database(item)
+        utils.save_insurance_to_database(item)
         self.request.sendall('success')
 
 class Refresher(QThread):
-    utils = Utils()
+    def __init__(self):
+        utils = Utils()
+
     def run(self):
         while True:
             self.emit(SIGNAL("update_ui(PyQt_PyObject)"), self.utils.get_undone_insurances_from_database())
