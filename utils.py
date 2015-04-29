@@ -13,18 +13,16 @@ import os
 import _winreg
 import socket
 
-def singleton(cls, *args, **kw):
-    instances = {}
-    def _singleton():
-        if cls not in instances:
-            instances[cls] = cls(*args, **kw)
-        return instances[cls]
-    return _singleton
 
-@singleton
 class Utils(object):
     constants = Constants()
     http = HttpHelper()
+
+    def __new__(cls, *args, **kw):
+        if not hasattr(cls, '_instance'):
+            orig = super(Utils, cls)
+            cls._instance = orig.__new__(cls, *args, **kw)
+        return cls._instance
 
     def __init__(self):
         super(Utils, self).__init__()
@@ -47,7 +45,7 @@ class Utils(object):
     def init_database(self, database_name):
         self.database = sqlite3.connect(database_name, check_same_thread = False)
         # 初始化数据库
-        self.database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT UNIQUE, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE, isDone BOOLEAN)")
+        self.database.execute("CREATE TABLE IF NOT EXISTS Insurances(ID INTEGER PRIMARY KEY AUTOINCREMENT, applyNum TEXT, rtnum TEXT, applyer TEXT, insuranceDate TEXT, insuranceId TEXT, accidentType TEXT, claimAmount TEXT, expressNum TEXT, expressDate TEXT, status TEXT, supporter TEXT, updateAt DATE, isDone BOOLEAN)")
         self.database.commit()
 
     def get_insurances_from_database(self):
@@ -63,7 +61,7 @@ class Utils(object):
         return result
 
     def save_insurance_to_database(self, item):
-        self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?,False)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today(),False))
+        self.database.execute("INSERT INTO Insurances VALUES (null, ?,?,?,?,?,?,?,?,?,?,?,?,?)", (item.apply_num, item.rtnum, item.applyer, item.insurance_date, item.insurance_id, item.accident_type, item.claim_amount, item.express_num, item.express_date, item.status, item.supporter, datetime.date.today(),False))
         self.database.commit()
 
     def update_insurance_in_database(self, item):
@@ -98,7 +96,7 @@ class Utils(object):
         workbook.save(path)
 
     def get_insurance_from_json(self, s):
-        dic = get_dict_from_json(s)
+        dic = self.get_dict_from_json(s)
         insurance = InsuranceItem(dic['index'], dic['apply_num'], dic['rtnum'], dic['applyer'], dic['insurance_date'], dic['insurance_id'], dic['accident_type'], dic['claim_amount'], dic['express_num'], dic['express_date'], dic['status'])
         return insurance
 
@@ -115,7 +113,7 @@ class Utils(object):
         dic['express_num'] = item.express_num
         dic['express_date'] = item.express_date
         dic['status'] = item.status
-        return get_json_from_dict(dic)
+        return self.get_json_from_dict(dic)
 
     def get_json_from_dict(self, dic):
         return json.dumps(dic, ensure_ascii=False)
