@@ -3,7 +3,6 @@ from Constants import Constants
 from HttpHelper import HttpHelper
 from InsuranceItem import InsuranceItem
 from SupportPeople import SupportPeople
-from bs4 import BeautifulSoup
 import codecs
 import json
 import sqlite3
@@ -36,6 +35,7 @@ class Utils(object):
             pass
 
     def get_desktop(self):
+        # return ''
         key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, r'Volatile Environment')
         return os.path.join(_winreg.QueryValueEx(key, "USERPROFILE")[0], 'Desktop')
 

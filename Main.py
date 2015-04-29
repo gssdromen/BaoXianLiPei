@@ -48,7 +48,7 @@ class Example(QtGui.QMainWindow):
         # 初始化数据库
         self.utils.init_database('date.db')
         # 得到Cookies
-        self.utils.get_cookies()
+        # self.utils.get_cookies()
         # 绑定信号槽
         self.ui.btn_refresh.clicked.connect(self.refresh_data)
         self.ui.btn_distribute.clicked.connect(self.distribute_supporter)
